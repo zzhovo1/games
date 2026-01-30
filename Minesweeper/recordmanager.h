@@ -9,7 +9,7 @@ class RecordManager {
 public:
     static int getBestTime(std::string difficulty) {
         std::map<std::string, int> records = loadAll();
-        return (records.count(difficulty)) ? records[difficulty] : 999;
+        return (records.count(difficulty)) ? records[difficulty] : 114514;
     }
 
     static void updateRecord(std::string difficulty, int seconds) {
