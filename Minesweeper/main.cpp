@@ -28,13 +28,6 @@ sf::String toUtf8(const std::string& str) {
     return sf::String::fromUtf8(str.begin(), str.end());
 }
 
-bool findFont(sf::Font& font) {
-    std::string paths[] = { "msyh.ttc", "C:/Windows/Fonts/msyh.ttc", 
-                            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-                            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc" };
-    for (const std::string& p : paths) { if (font.loadFromFile(p)) return true; }
-    return false;
-}
 
 int main() {
     int curIdx = 0;
@@ -42,7 +35,7 @@ int main() {
     Game game(d.rows, d.cols, d.mines);
     
     sf::RenderWindow window(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), 
-                            toUtf8(u8"扫雷专业版"), sf::Style::Titlebar | sf::Style::Close);
+                            toUtf8(u8"Minesweeper --made by zzhovo"), sf::Style::Titlebar | sf::Style::Close);
     window.setFramerateLimit(60);
 
     sf::Texture tex[12]; 
@@ -53,7 +46,9 @@ int main() {
     sf::Texture clockTex; clockTex.loadFromFile("./img/MINESWEEPER_C.png");
 
     sf::Font font;
-    findFont(font);
+    if (!font.loadFromFile("./font/MiSans-Regular.otf")) {
+        std::cerr << "Error: Font file ./font/MiSans-Regular.otf not found!" << std::endl;
+    }
 
     sf::Clock timer;
     int gameTime = 0;
@@ -97,13 +92,13 @@ int main() {
                             errorMsg = u8"设置不完整";
                         } else {
                             int r = std::stoi(inputs[0]), c = std::stoi(inputs[1]), n = std::stoi(inputs[2]);
-                            if (r < 9 || c < 9) errorMsg = u8"边长需 >= 9";
+                            if (r < 9 || c < 9) errorMsg = u8"边长需大于等于 9";
                             else if (n >= r * c) errorMsg = u8"雷数过多";
                             else {
                                 d = {u8"自定义", r, c, n};
                                 curIdx = 3;
                                 game = Game(d.rows, d.cols, d.mines);
-                                window.create(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), toUtf8(u8"扫雷专业版"));
+                                window.create(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), toUtf8(u8"Minesweeper --made by zzhovo"));
                                 window.setView(sf::View(sf::FloatRect(0, 0, (float)window.getSize().x, (float)window.getSize().y)));
                                 showCustomPanel = false; gameTime = 0;
                             }
@@ -122,7 +117,7 @@ int main() {
                     else if (clickedIdx >= 0 && clickedIdx < 3 && clickedIdx != curIdx) {
                         curIdx = clickedIdx; d = levels[curIdx];
                         game = Game(d.rows, d.cols, d.mines);
-                        window.create(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), toUtf8(u8"扫雷专业版"));
+                        window.create(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), toUtf8(u8"Minesweeper --made by zzhovo"));
                         window.setView(sf::View(sf::FloatRect(0, 0, (float)window.getSize().x, (float)window.getSize().y)));
                         gameTime = 0; showPopup = false;
                     }
@@ -224,8 +219,7 @@ int main() {
                 sf::RectangleShape okBtn(sf::Vector2f(80, 40)); okBtn.setPosition(window.getSize().x/2 - 40, 320);
                 okBtn.setFillColor(sf::Color(100, 200, 100)); window.draw(okBtn);
                 sf::Text okT(toUtf8(u8"确定"), font, 18); okT.setPosition(window.getSize().x/2 - 18, 328); window.draw(okT);
-            } else if (showPopup) { // 结算弹窗 (代码略，参考之前版本，确保 restartBtnRect 正确计算)
-                // ... [此处保持之前结算弹窗绘制代码即可] ...
+            } else if (showPopup) { // 结果弹窗
                 float boxW = 340, boxH = 260; float boxX = window.getSize().x/2 - boxW/2; float boxY = window.getSize().y/2 - boxH/2;
                 sf::RectangleShape box(sf::Vector2f(boxW, boxH)); box.setFillColor(sf::Color::White); box.setPosition(boxX, boxY); window.draw(box);
                 sf::Text msg(isWin ? toUtf8(u8"恭喜胜利！") : toUtf8(u8"遗憾失败"), font, 30);
