@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include "gameboard.h"
 
 GameBoard::GameBoard(int r, int c, int mines) : rows(r), cols(c), mineCount(mines) {
@@ -16,6 +17,7 @@ void GameBoard::initializeBoard() {
 
 void GameBoard::placeMines(int firstRow, int firstCol) {
     int placedMines = 0;
+    srand(static_cast<unsigned int>(time(0)));
     while (placedMines < mineCount) {
         int r = rand() % rows;
         int c = rand() % cols;

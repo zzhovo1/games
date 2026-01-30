@@ -55,6 +55,56 @@ void Game::flagCell(int x, int y) {
     block.setIsFlagged(!block.getIsFlagged());
 }
 
+void Game::chordRevealCell(int x, int y) {
+    if (isGameOver) {
+        throw std::runtime_error("Game is over. Cannot chord reveal cells.");
+    }
+
+    Block& block = board.getBlock(x, y);
+    if (!block.getIsRevealed() || block.getAdjacentMines() == 0) {
+        return; // Do nothing if not revealed or has no adjacent mines
+    }
+
+    int flaggedCount = 0;
+    for (int dr = -1; dr <= 1; ++dr) {
+        for (int dc = -1; dc <= 1; ++dc) {
+            int nr = x + dr;
+            int nc = y + dc;
+            if (nr >= 0 && nr < board.getRows() && nc >= 0 && nc < board.getCols()) {
+                if (board.isFlagged(nr, nc)) {
+                    flaggedCount++;
+                }
+            }
+        }
+    }
+
+    if (flaggedCount == block.getAdjacentMines()) {
+        for (int dr = -1; dr <= 1; ++dr) {
+            for (int dc = -1; dc <= 1; ++dc) {
+                int nr = x + dr;
+                int nc = y + dc;
+                if (nr >= 0 && nr < board.getRows() && nc >= 0 && nc < board.getCols()) {
+                    if (!board.isFlagged(nr, nc) && !board.isRevealed(nr, nc)) {
+                        revealCell(nr, nc);
+                    }
+                }
+            }
+        }
+    }
+}
+
+int Game::getRemainingMines() {
+    int flaggedCount = 0;
+    for (int i = 0; i < board.getRows(); ++i) {
+        for (int j = 0; j < board.getCols(); ++j) {
+            if (board.isFlagged(i, j)) {
+                flaggedCount++;
+            }
+        }
+    }
+    return board.getMineCount() - flaggedCount;
+}
+
 bool Game::checkWin() {
     for (int i = 0; i < board.getRows(); ++i) {
         for (int j = 0; j < board.getCols(); ++j) {

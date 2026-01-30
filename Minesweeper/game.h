@@ -11,8 +11,13 @@ private:
 public:
     Game() = default;
     Game(int width, int height, int mines);
+    GameBoard& getBoard() { return board; }
+    bool getIsGameOver() const { return isGameOver; }
+    bool getIsFirstMove() const { return isFirstMove; }
     void revealCell(int x, int y);
     void flagCell(int x, int y);
+    void chordRevealCell(int x, int y);
+    int getRemainingMines();
     bool checkWin();
 
 };
