@@ -18,12 +18,17 @@ void GameBoard::initializeBoard() {
 void GameBoard::placeMines(int firstRow, int firstCol) {
     int placedMines = 0;
     srand(static_cast<unsigned int>(time(0)));
+
     while (placedMines < mineCount) {
         int r = rand() % rows;
         int c = rand() % cols;
-        if ((r == firstRow && c == firstCol) || this->board[r][c].getIsMine()) {
-            continue; // Avoid placing mine on the first clicked block or on an existing mine
+
+        bool inSafeZone = (std::abs(r - firstRow) <= 1 && std::abs(c - firstCol) <= 1);
+
+        if (inSafeZone || this->board[r][c].getIsMine()) {
+            continue; 
         }
+
         this->board[r][c].setIsMine(true);
         placedMines++;
     }
