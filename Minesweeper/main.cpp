@@ -11,6 +11,8 @@ const float ORIG_IMG_SIZE = 216.0f;
 const float SCALE = TILE_SIZE / ORIG_IMG_SIZE;
 const int HEADER_H = 100;
 const int FOOTER_H = 60;
+const unsigned int ACTIVE_FPS = 30;
+const unsigned int BACKGROUND_FPS = 10;
 
 struct Difficulty {
     std::string name;
@@ -34,9 +36,14 @@ int main() {
     Difficulty d = levels[curIdx];
     Game game(d.rows, d.cols, d.mines);
     
-    sf::RenderWindow window(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), 
-                            toUtf8(u8"Minesweeper --made by zzhovo"), sf::Style::Titlebar | sf::Style::Close);
-    window.setFramerateLimit(60);
+    sf::RenderWindow window(
+        sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H),
+        toUtf8(u8"Minesweeper --made by zzhovo"),
+        sf::Style::Titlebar | sf::Style::Close | sf::Style::Resize
+    );
+    bool hasFocus = true;
+    window.setVerticalSyncEnabled(true);
+    window.setFramerateLimit(ACTIVE_FPS);
 
     sf::Texture tex[12]; 
     for(int i=0; i<=8; ++i) tex[i].loadFromFile("./img/MINESWEEPER_" + std::to_string(i) + ".png");
@@ -64,9 +71,25 @@ int main() {
     std::string errorMsg = "";
 
     while (window.isOpen()) {
+        const int boardWidth = d.cols * TILE_SIZE;
+        const int boardHeight = d.rows * TILE_SIZE;
+        const int boardOffsetX = ((int)window.getSize().x - boardWidth) / 2;
+        const int boardOffsetY = HEADER_H + (((int)window.getSize().y - HEADER_H - FOOTER_H - boardHeight) / 2);
+
         sf::Event e;
         while (window.pollEvent(e)) {
             if (e.type == sf::Event::Closed) window.close();
+            if (e.type == sf::Event::Resized) {
+                window.setView(sf::View(sf::FloatRect(0, 0, (float)e.size.width, (float)e.size.height)));
+            }
+            if (e.type == sf::Event::LostFocus) {
+                hasFocus = false;
+                window.setFramerateLimit(BACKGROUND_FPS);
+            }
+            if (e.type == sf::Event::GainedFocus) {
+                hasFocus = true;
+                window.setFramerateLimit(ACTIVE_FPS);
+            }
 
             // 文本输入逻辑 (仅在自定义面板显示时)
             if (showCustomPanel && e.type == sf::Event::TextEntered) {
@@ -78,7 +101,7 @@ int main() {
             }
 
             if (e.type == sf::Event::MouseButtonPressed) {
-                sf::Vector2i m = sf::Mouse::getPosition(window);
+                sf::Vector2f m = window.mapPixelToCoords(sf::Mouse::getPosition(window));
                 
                 // 1. 自定义面板点击逻辑
                 if (showCustomPanel) {
@@ -98,8 +121,14 @@ int main() {
                                 d = {u8"自定义", r, c, n};
                                 curIdx = 3;
                                 game = Game(d.rows, d.cols, d.mines);
-                                window.create(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), toUtf8(u8"Minesweeper --made by zzhovo"));
+                                window.create(
+                                    sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H),
+                                    toUtf8(u8"Minesweeper --made by zzhovo"),
+                                    sf::Style::Titlebar | sf::Style::Close | sf::Style::Resize
+                                );
                                 window.setView(sf::View(sf::FloatRect(0, 0, (float)window.getSize().x, (float)window.getSize().y)));
+                                window.setVerticalSyncEnabled(true);
+                                window.setFramerateLimit(hasFocus ? ACTIVE_FPS : BACKGROUND_FPS);
                                 showCustomPanel = false; gameTime = 0;
                             }
                         }
@@ -117,21 +146,28 @@ int main() {
                     else if (clickedIdx >= 0 && clickedIdx < 3 && clickedIdx != curIdx) {
                         curIdx = clickedIdx; d = levels[curIdx];
                         game = Game(d.rows, d.cols, d.mines);
-                        window.create(sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H), toUtf8(u8"Minesweeper --made by zzhovo"));
+                        window.create(
+                            sf::VideoMode(d.cols * TILE_SIZE, d.rows * TILE_SIZE + HEADER_H + FOOTER_H),
+                            toUtf8(u8"Minesweeper --made by zzhovo"),
+                            sf::Style::Titlebar | sf::Style::Close | sf::Style::Resize
+                        );
                         window.setView(sf::View(sf::FloatRect(0, 0, (float)window.getSize().x, (float)window.getSize().y)));
+                        window.setVerticalSyncEnabled(true);
+                        window.setFramerateLimit(hasFocus ? ACTIVE_FPS : BACKGROUND_FPS);
                         gameTime = 0; showPopup = false;
                     }
                     continue;
                 }
 
                 // 3. 弹窗重开点击
-                if (showPopup && restartBtnRect.contains((float)m.x, (float)m.y)) {
+                if (showPopup && restartBtnRect.contains(m.x, m.y)) {
                     game = Game(d.rows, d.cols, d.mines);
                     gameTime = 0; showPopup = false; continue;
                 }
 
                 // 4. 棋盘点击 
-                int gx = m.x / TILE_SIZE, gy = (m.y - HEADER_H) / TILE_SIZE;
+                int gx = ((int)m.x - boardOffsetX) / TILE_SIZE;
+                int gy = ((int)m.y - boardOffsetY) / TILE_SIZE;
                 if (gy >= 0 && gy < d.rows && gx >= 0 && gx < d.cols && !game.getIsGameOver() && !showPopup) {
                     bool L = sf::Mouse::isButtonPressed(sf::Mouse::Left);
                     bool R = sf::Mouse::isButtonPressed(sf::Mouse::Right);
@@ -171,7 +207,8 @@ int main() {
                 sf::Sprite s; Block& b = game.getBoard().getBlock(r, c);
                 if (!b.getIsRevealed()) s.setTexture(b.getIsFlagged() ? tex[9] : tex[11]);
                 else s.setTexture(b.getIsMine() ? tex[10] : tex[b.getAdjacentMines()]);
-                s.setScale(SCALE, SCALE); s.setPosition((float)c * TILE_SIZE, (float)r * TILE_SIZE + HEADER_H);
+                s.setScale(SCALE, SCALE);
+                s.setPosition((float)(boardOffsetX + c * TILE_SIZE), (float)(boardOffsetY + r * TILE_SIZE));
                 window.draw(s);
             }
         }
@@ -232,6 +269,7 @@ int main() {
             }
         }
         window.display();
+        sf::sleep(sf::milliseconds(1));
     }
     return 0;
 }
